@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CrisisRoom-AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0A0C10;
+    --bg-2: #0F1219;
+    --panel: rgba(22, 27, 38, 0.65);
+    --panel-solid: #161B26;
+    --line: rgba(255,255,255,0.08);
+    --line-strong: rgba(255,255,255,0.14);
+    --text: #EDEEF2;
+    --muted: #7C8493;
+    --copper: #FF7A45;
+    --copper-dim: rgba(255, 122, 69, 0.15);
+    --steel: #5B9BD5;
+    --steel-dim: rgba(91, 155, 213, 0.15);
+    --sage: #6FCF97;
+    --danger: #FF5C6C;
+    --disp: 'Space Grotesk', sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgba(255,122,69,0.06), transparent),
+      radial-gradient(ellipse 60% 50% at 100% 100%, rgba(91,155,213,0.05), transparent),
+      var(--bg);
+    background-attachment: fixed;
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px);
+    background-size: 48px 48px;
+    pointer-events: none;
+    z-index: 0;
+  }
+  ::selection { background: var(--copper-dim); }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 4px; }
+
+  /* ---------- HEADER ---------- */
+  header {
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    background: rgba(10,12,16,0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-bottom: 1px solid var(--line);
+    padding: 16px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 14px;
+  }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-mark {
+    width: 34px; height: 34px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--copper), #C44A1F);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--disp); font-weight: 700; font-size: 16px;
+    box-shadow: 0 0 24px rgba(255,122,69,0.35);
+    flex-shrink: 0;
+  }
+  .title {
+    font-family: var(--disp);
+    font-weight: 600;
+    font-size: 20px;
+    letter-spacing: -0.3px;
+  }
+  .title .sub { display: block; font-size: 11px; color: var(--muted); font-family: var(--mono); font-weight: 400; letter-spacing: 0.5px; margin-top: 1px; }
+
+  .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .select-wrap { position: relative; }
+  select {
+    appearance: none;
+    background: var(--panel-solid);
+    color: var(--text);
+    border: 1px solid var(--line-strong);
+    padding: 10px 36px 10px 14px;
+    font-family: var(--mono);
+    font-size: 13px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: border-color 0.2s;
+  }
+  select:hover { border-color: var(--copper); }
+  .select-wrap::after {
+    content: '▾';
+    position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+    color: var(--muted); pointer-events: none; font-size: 11px;
+  }
+  button {
+    background: var(--panel-solid);
+    color: var(--text);
+    border: 1px solid var(--line-strong);
+    padding: 10px 18px;
+    font-family: var(--mono);
+    font-size: 13px;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: all 0.2s;
+  }
+  button:hover:not(:disabled) { border-color: var(--steel); transform: translateY(-1px); }
+  button.primary {
+    background: linear-gradient(135deg, var(--copper), #D45A28);
+    color: #0A0C10;
+    border: none;
+    font-weight: 600;
+    box-shadow: 0 4px 16px rgba(255,122,69,0.25);
+  }
+  button.primary:hover:not(:disabled) { box-shadow: 0 6px 20px rgba(255,122,69,0.4); }
+  button:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+
+  /* ---------- LAYOUT ---------- */
+  main {
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 24px;
+    display: grid;
+    grid-template-columns: 300px 1fr 320px;
+    gap: 18px;
+    align-items: start;
+  }
+  @media (max-width: 1100px) {
+    main { grid-template-columns: 1fr; }
+  }
+  .pane {
+    background: var(--panel);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 20px;
+  }
+  .pane-title {
+    font-family: var(--disp);
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: var(--muted);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .pane-title .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); }
+
+  /* ---------- RADAR CLOCK (signature element) ---------- */
+  .radar-wrap { display: flex; flex-direction: column; align-items: center; padding: 8px 0 20px; }
+  .radar {
+    position: relative;
+    width: 160px; height: 160px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,122,69,0.04) 0%, transparent 70%);
+    border: 1px solid var(--line-strong);
+  }
+  .radar::before, .radar::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+  }
+  .radar::before { inset: 22px; }
+  .radar::after { inset: 44px; }
+  .radar-sweep {
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: conic-gradient(from 0deg, transparent 0deg, var(--copper-dim) 25deg, transparent 50deg);
+    animation: sweep 3s linear infinite;
+    animation-play-state: paused;
+  }
+  .radar-sweep.active { animation-play-state: running; }
+  @keyframes sweep { to { transform: rotate(360deg); } }
+  .radar-center {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .radar-time { font-family: var(--disp); font-size: 28px; font-weight: 700; letter-spacing: -0.5px; }
+  .radar-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+  .severity-badge {
+    margin-top: 16px;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-family: var(--disp);
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    background: var(--steel-dim);
+    color: var(--steel);
+    border: 1px solid currentColor;
+    transition: all 0.4s;
+  }
+  .severity-badge.LOW { background: rgba(111,207,151,0.12); color: var(--sage); }
+  .severity-badge.MEDIUM { background: rgba(255,122,69,0.12); color: var(--copper); }
+  .severity-badge.HIGH { background: rgba(255,140,66,0.15); color: #FF8C42; }
+  .severity-badge.CRITICAL { background: rgba(255,92,108,0.15); color: var(--danger); animation: critPulse 1.2s ease-in-out infinite; }
+  @keyframes critPulse { 50% { box-shadow: 0 0 0 6px rgba(255,92,108,0.08); } }
+
+  .status-row { display: flex; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--line); font-size: 13px; }
+  .status-row .v { color: var(--text); font-weight: 500; }
+  .status-row .k { color: var(--muted); }
+
+  /* ---------- AGENT ROSTER ---------- */
+  .agent-roster { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+  .agent-card {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: rgba(255,255,255,0.02);
+    transition: all 0.3s;
+  }
+  .agent-card.speaking {
+    border-color: var(--copper);
+    background: var(--copper-dim);
+    box-shadow: 0 0 0 1px var(--copper), 0 0 20px rgba(255,122,69,0.15);
+  }
+  .agent-avatar {
+    width: 30px; height: 30px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; flex-shrink: 0;
+    background: var(--panel-solid);
+  }
+  .agent-card.triage .agent-avatar { background: var(--steel-dim); }
+  .agent-card.fix .agent-avatar { background: var(--copper-dim); }
+  .agent-card.commander .agent-avatar { background: rgba(255,92,108,0.15); }
+  .agent-card.comms .agent-avatar { background: rgba(111,207,151,0.15); }
+  .agent-name { font-family: var(--disp); font-weight: 600; font-size: 13px; }
+  .agent-role { font-size: 10px; color: var(--muted); }
+  .agent-pulse {
+    margin-left: auto;
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--line-strong);
+  }
+  .agent-card.speaking .agent-pulse { background: var(--copper); animation: dotPulse 1s ease-in-out infinite; }
+  @keyframes dotPulse { 50% { opacity: 0.3; } }
+
+  /* ---------- FEED ---------- */
+  .feed { display: flex; flex-direction: column; gap: 12px; min-height: 200px; }
+  .feed-entry {
+    display: flex; gap: 12px;
+    animation: rise 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .feed-avatar {
+    width: 32px; height: 32px; border-radius: 9px; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; font-size: 15px;
+    margin-top: 2px;
+  }
+  .feed-entry.triage .feed-avatar { background: var(--steel-dim); }
+  .feed-entry.fix .feed-avatar { background: var(--copper-dim); }
+  .feed-entry.commander .feed-avatar { background: rgba(255,92,108,0.15); }
+  .feed-entry.comms .feed-avatar { background: rgba(111,207,151,0.15); }
+  .feed-entry.system .feed-avatar { background: var(--line-strong); }
+  .feed-body {
+    flex: 1;
+    background: rgba(255,255,255,0.025);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px 14px;
+  }
+  .feed-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; flex-wrap: wrap; }
+  .feed-agent-name { font-family: var(--disp); font-weight: 600; font-size: 13px; }
+  .feed-tag {
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.6px;
+    color: var(--muted); padding: 2px 8px; border: 1px solid var(--line); border-radius: 10px;
+  }
+  .feed-text { font-size: 13.5px; line-height: 1.6; color: var(--text); }
+  .feed-entry.system .feed-body { border-style: dashed; border-color: var(--line-strong); }
+  .feed-entry.system .feed-text { color: var(--muted); font-style: italic; }
+  .feed-entry.escalation .feed-body { border-color: var(--danger); background: rgba(255,92,108,0.05); }
+  .feed-entry.escalation .feed-text { color: var(--danger); font-weight: 500; font-style: normal; }
+
+  .typing-indicator { display: flex; gap: 4px; padding: 14px; }
+  .typing-indicator span {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--muted);
+    animation: typingBounce 1.2s infinite;
+  }
+  .typing-indicator span:nth-child(2) { animation-delay: 0.15s; }
+  .typing-indicator span:nth-child(3) { animation-delay: 0.3s; }
+  @keyframes typingBounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.4; } 30% { transform: translateY(-4px); opacity: 1; } }
+
+  .empty-state {
+    color: var(--muted); font-size: 13px; text-align: center;
+    padding: 60px 20px; border: 1px dashed var(--line); border-radius: 12px;
+  }
+
+  /* ---------- APPROVAL ---------- */
+  .approval-box {
+    border: 1px solid var(--copper);
+    background: var(--copper-dim);
+    border-radius: 12px;
+    padding: 16px;
+    animation: rise 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .approval-label {
+    font-family: var(--disp); color: var(--copper); font-weight: 700;
+    text-transform: uppercase; font-size: 12px; letter-spacing: 0.8px;
+    display: flex; align-items: center; gap: 6px; margin-bottom: 10px;
+  }
+  .approval-box p { font-size: 12.5px; line-height: 1.6; margin-bottom: 8px; color: var(--text); }
+  .approval-box p b { color: var(--copper); font-weight: 600; }
+  .approval-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .approval-actions button { flex: 1; font-weight: 600; }
+  .approve-btn { background: var(--sage); color: #0A0C10; border: none; }
+  .deny-btn { background: var(--danger); color: #0A0C10; border: none; }
+
+  .log-line {
+    font-size: 11px; color: var(--muted); padding: 6px 0;
+    border-bottom: 1px solid var(--line); display: flex; gap: 8px;
+  }
+  .log-line .t { color: var(--steel); flex-shrink: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="brand-mark">CR</div>
+    <div class="title">CrisisRoom-AI<span class="sub">Multi-agent incident response</span></div>
+  </div>
+  <div class="controls">
+    <div class="select-wrap">
+      <select id="scenarioSelect">
+        <option value="payment-outage">Payment API Outage</option>
+        <option value="db-latency">Database Latency Spike</option>
+        <option value="security-breach">Security Breach</option>
+      </select>
+    </div>
+    <button class="primary" id="startBtn">Trigger Incident</button>
+  </div>
+</header>
+
+<main>
+  <!-- LEFT: status + roster -->
+  <section class="pane">
+    <div class="pane-title"><span class="dot"></span>Incident Status</div>
+    <div class="radar-wrap">
+      <div class="radar">
+        <div class="radar-sweep" id="radarSweep"></div>
+        <div class="radar-center">
+          <div class="radar-time" id="elapsedVal">00:00</div>
+          <div class="radar-label">Elapsed</div>
+        </div>
+      </div>
+      <div class="severity-badge MEDIUM" id="severityBadge">Standby</div>
+    </div>
+    <div class="status-row"><span class="k">Status</span><span class="v" id="statusVal">Standby</span></div>
+    <div class="status-row"><span class="k">Incident ID</span><span class="v" id="incidentIdVal">—</span></div>
+
+    <div class="pane-title" style="margin-top:22px;"><span class="dot"></span>Agent Roster</div>
+    <div class="agent-roster">
+      <div class="agent-card triage" id="card-triage">
+        <div class="agent-avatar">🔍</div>
+        <div><div class="agent-name">Triage</div><div class="agent-role">Diagnoses & assigns severity</div></div>
+        <div class="agent-pulse"></div>
+      </div>
+      <div class="agent-card fix" id="card-fix">
+        <div class="agent-avatar">🛠</div>
+        <div><div class="agent-name">Fix</div><div class="agent-role">Proposes remediation</div></div>
+        <div class="agent-pulse"></div>
+      </div>
+      <div class="agent-card commander" id="card-commander">
+        <div class="agent-avatar">⚑</div>
+        <div><div class="agent-name">Commander</div><div class="agent-role">Approves, rejects, escalates</div></div>
+        <div class="agent-pulse"></div>
+      </div>
+      <div class="agent-card comms" id="card-comms">
+        <div class="agent-avatar">📡</div>
+        <div><div class="agent-name">Comms</div><div class="agent-role">Drafts status updates</div></div>
+        <div class="agent-pulse"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CENTER: live feed -->
+  <section class="pane">
+    <div class="pane-title"><span class="dot"></span>Live Comms</div>
+    <div class="feed" id="feed">
+      <div class="empty-state">No active incident. Select a scenario and trigger one above.</div>
+    </div>
+  </section>
+
+  <!-- RIGHT: approvals + log -->
+  <section class="pane">
+    <div class="pane-title"><span class="dot"></span>Action Required</div>
+    <div id="approvalArea">
+      <div class="empty-state" style="padding: 30px 16px;">Nothing pending.</div>
+    </div>
+    <div class="pane-title" style="margin-top:22px;"><span class="dot"></span>Event Log</div>
+    <div id="eventLog"></div>
+  </section>
+</main>
+
+<script>
+// In Docker, this gets replaced at container start by docker-entrypoint.sh
+// using the API_BASE environment variable. Locally, it just falls back to localhost.
+window.API_BASE = "%%API_BASE%%";
+const API_BASE = (window.API_BASE && !window.API_BASE.includes("%%")) ? window.API_BASE : "http://localhost:8000";
+
+const startBtn = document.getElementById('startBtn');
+const feed = document.getElementById('feed');
+const eventLog = document.getElementById('eventLog');
+const approvalArea = document.getElementById('approvalArea');
+const radarSweep = document.getElementById('radarSweep');
+const severityBadge = document.getElementById('severityBadge');
+const elapsedVal = document.getElementById('elapsedVal');
+const statusVal = document.getElementById('statusVal');
+const incidentIdVal = document.getElementById('incidentIdVal');
+
+const AGENT_META = {
+  triage:    { name: 'Triage',    icon: '🔍' },
+  fix:       { name: 'Fix',       icon: '🛠' },
+  commander: { name: 'Commander', icon: '⚑' },
+  comms:     { name: 'Comms',     icon: '📡' },
+};
+
+let timerInterval = null;
+let startTime = null;
+let currentIncidentId = null;
+let typingEl = null;
+
+function logLine(text) {
+  const el = document.createElement('div');
+  el.className = 'log-line';
+  el.innerHTML = `<span class="t">${new Date().toLocaleTimeString()}</span><span>${text}</span>`;
+  eventLog.prepend(el);
+}
+
+function clearEmptyState() {
+  const e = feed.querySelector('.empty-state');
+  if (e) e.remove();
+}
+
+function showTyping(agent) {
+  removeTyping();
+  clearEmptyState();
+  typingEl = document.createElement('div');
+  typingEl.className = `feed-entry ${agent}`;
+  const meta = AGENT_META[agent] || { name: agent, icon: '●' };
+  typingEl.innerHTML = `
+    <div class="feed-avatar">${meta.icon}</div>
+    <div class="feed-body"><div class="typing-indicator"><span></span><span></span><span></span></div></div>
+  `;
+  feed.appendChild(typingEl);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function removeTyping() {
+  if (typingEl) { typingEl.remove(); typingEl = null; }
+}
+
+function addFeedEntry(agent, message, opts = {}) {
+  removeTyping();
+  clearEmptyState();
+  const el = document.createElement('div');
+  el.className = `feed-entry ${agent || 'system'}${opts.escalation ? ' escalation' : ''}`;
+  const meta = AGENT_META[agent] || { name: opts.label || 'System', icon: '◆' };
+  el.innerHTML = `
+    <div class="feed-avatar">${meta.icon}</div>
+    <div class="feed-body">
+      <div class="feed-meta">
+        <span class="feed-agent-name">${meta.name}</span>
+        ${opts.label ? `<span class="feed-tag">${opts.label}</span>` : ''}
+      </div>
+      <div class="feed-text">${message}</div>
+    </div>
+  `;
+  feed.appendChild(el);
+  feed.scrollTop = feed.scrollHeight;
+}
+
+function setAgentSpeaking(agent) {
+  document.querySelectorAll('.agent-card').forEach(c => c.classList.remove('speaking'));
+  const card = document.getElementById('card-' + agent);
+  if (card) card.classList.add('speaking');
+}
+
+function clearAgentSpeaking() {
+  document.querySelectorAll('.agent-card').forEach(c => c.classList.remove('speaking'));
+}
+
+function setSeverity(sev) {
+  severityBadge.textContent = sev;
+  severityBadge.className = 'severity-badge ' + sev;
+}
+
+function startTimer() {
+  startTime = Date.now();
+  radarSweep.classList.add('active');
+  timerInterval = setInterval(() => {
+    const s = Math.floor((Date.now() - startTime) / 1000);
+    const mm = String(Math.floor(s / 60)).padStart(2, '0');
+    const ss = String(s % 60).padStart(2, '0');
+    elapsedVal.textContent = `${mm}:${ss}`;
+  }, 1000);
+}
+
+function stopTimer() {
+  clearInterval(timerInterval);
+  radarSweep.classList.remove('active');
+}
+
+startBtn.addEventListener('click', () => {
+  const scenario = document.getElementById('scenarioSelect').value;
+  feed.innerHTML = '';
+  eventLog.innerHTML = '';
+  approvalArea.innerHTML = '<div class="empty-state" style="padding: 30px 16px;">Nothing pending.</div>';
+  setSeverity('MEDIUM');
+  statusVal.textContent = 'In Progress';
+  incidentIdVal.textContent = '—';
+  startBtn.disabled = true;
+  startTimer();
+  showTyping('triage');
+
+  const es = new EventSource(`${API_BASE}/incidents/start?scenario=${scenario}`);
+
+  es.addEventListener('incident_start', (e) => {
+    const data = JSON.parse(e.data);
+    currentIncidentId = data.incident_id;
+    incidentIdVal.textContent = data.incident_id;
+    logLine(`Incident <b>${data.incident_id}</b> opened`);
+    addFeedEntry('system', data.scenario, { label: 'INCIDENT REPORTED' });
+    setAgentSpeaking('triage');
+  });
+
+  es.addEventListener('agent_turn', (e) => {
+    const data = JSON.parse(e.data);
+    setAgentSpeaking(data.agent);
+    if (data.agent === 'triage') {
+      setSeverity(data.severity);
+      addFeedEntry('triage', data.message, { label: `root cause: ${data.root_cause}` });
+      showTyping('fix');
+    } else if (data.agent === 'fix') {
+      addFeedEntry('fix', data.message, { label: `risk: ${data.risk_level}` });
+      showTyping('commander');
+    } else if (data.agent === 'commander') {
+      addFeedEntry('commander', data.message, { label: `decision: ${data.decision}` });
+    } else if (data.agent === 'comms') {
+      addFeedEntry('comms', data.update, { label: 'status update' });
+    }
+    logLine(`${AGENT_META[data.agent]?.name || data.agent} turn processed`);
+  });
+
+  es.addEventListener('severity_escalation', (e) => {
+    const data = JSON.parse(e.data);
+    setSeverity(data.new_severity);
+    addFeedEntry('system', `Severity escalated to ${data.new_severity} — unresolved at ${data.elapsed}s`, { label: 'ESCALATION', escalation: true });
+  });
+
+  es.addEventListener('human_approval_required', (e) => {
+    const data = JSON.parse(e.data);
+    clearAgentSpeaking();
+    approvalArea.innerHTML = `
+      <div class="approval-box">
+        <div class="approval-label">⚠ Human sign-off required</div>
+        <p><b>Proposed action</b><br>${data.proposed_action}</p>
+        <p><b>Risk</b><br>${data.risk_explanation}</p>
+        <p><b>Commander's note</b><br>${data.commander_reasoning}</p>
+        <div class="approval-actions">
+          <button class="approve-btn" id="approveBtn">Approve</button>
+          <button class="deny-btn" id="denyBtn">Deny</button>
+        </div>
+      </div>
+    `;
+    document.getElementById('approveBtn').onclick = () => sendApproval(true);
+    document.getElementById('denyBtn').onclick = () => sendApproval(false);
+  });
+
+  es.addEventListener('human_decision', (e) => {
+    const data = JSON.parse(e.data);
+    approvalArea.innerHTML = '<div class="empty-state" style="padding: 30px 16px;">Nothing pending.</div>';
+    addFeedEntry('system', data.approved ? 'Human operator approved the action.' : 'Human operator denied the action.', { label: 'HUMAN DECISION' });
+    if (!data.approved) showTyping('fix');
+  });
+
+  es.addEventListener('incident_end', (e) => {
+    const data = JSON.parse(e.data);
+    removeTyping();
+    clearAgentSpeaking();
+    stopTimer();
+    statusVal.textContent = data.resolved ? 'Resolved' : 'Unresolved';
+    addFeedEntry('system', `Incident closed in ${data.total_seconds}s — ${data.resolved ? 'RESOLVED' : 'ESCALATED TO MANUAL HANDOFF'}`, { label: 'CLOSED' });
+    startBtn.disabled = false;
+    es.close();
+  });
+
+  es.onerror = () => {
+    logLine('Stream error / closed');
+    removeTyping();
+    clearAgentSpeaking();
+    stopTimer();
+    startBtn.disabled = false;
+    es.close();
+  };
+});
+
+async function sendApproval(approved) {
+  if (!currentIncidentId) return;
+  await fetch(`${API_BASE}/incidents/${currentIncidentId}/approve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ approved }),
+  });
+}
+</script>
+
+</body>
+</html>

@@ -1,4 +1,4 @@
-# Crisis Room
+# CrisisRoom-AI
 
 A multi-agent incident response simulator built for the Global AI Hackathon Series with Qwen Cloud — **Track 3: Agent Society**.
 
@@ -43,7 +43,7 @@ https://dashscope-intl.aliyuncs.com/compatible-mode/v1
 ## Project structure
 
 ```
-crisis-room/
+CrisisRoom-AI/
 ├── .gitignore
 ├── .env.example          # copy to .env, fill in your real key — .env is git-ignored
 ├── LICENSE                # MIT — required for the public repo OSS license
